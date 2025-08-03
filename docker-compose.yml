@@ -2,12 +2,12 @@ services:
   django-backend:
     build:
       context: .
+      dockerfile: ./Dockerfile
     ports:
       - "8000:8000"
-    volumes:
-        - '.:/app:rw'
     command: bash run_command.sh
-    env_file: .env
+    env_file:
+      - .env
     depends_on:
       - postgres
 

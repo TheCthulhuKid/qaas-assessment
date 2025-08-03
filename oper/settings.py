@@ -86,7 +86,7 @@ DATABASES = {
                 'NAME': 'qaasdb',
                 'USER': 'postgres',
                 'PASSWORD': 'postgres',
-                'HOST': 'localhost',
+                'HOST': 'postgres',
                 'PORT': '5432',
     }
 }
@@ -135,5 +135,3 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-
-print(os.getenv("DATABASE_URL"))

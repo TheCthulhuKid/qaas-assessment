@@ -43,6 +43,7 @@ class Quiz(BaseModel):
     ]
     owner = models.ForeignKey(QuizUser, on_delete=models.CASCADE, related_name="created_quizzes")
     title = models.CharField(max_length=150)
+    description = models.TextField(null=True, blank=True)
     status = models.PositiveSmallIntegerField(choices=STATUS, default=DRAFT)
     start_time = models.DateTimeField(null=True, blank=True)
     end_time = models.DateTimeField(null=True, blank=True)
@@ -71,6 +72,10 @@ class Quiz(BaseModel):
             return False
 
         return True
+
+    @property
+    def max_score(self):
+        return sum(self.questions.points)
 
 
 class Question(models.Model):
@@ -151,6 +156,7 @@ class Invitation(BaseModel):
     quiz = models.ForeignKey(Quiz, on_delete=models.CASCADE, related_name="invitations")
     participant = models.ForeignKey(QuizUser, on_delete=models.CASCADE, related_name="quiz_invitations")
     invited_by = models.ForeignKey(QuizUser, on_delete=models.CASCADE, related_name="sent_invitations")
+    status = models.PositiveSmallIntegerField(choices=STATUS_CHOICES, default=PENDING)
     responded_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
@@ -184,12 +190,19 @@ class Attempt(BaseModel):
     participant = models.ForeignKey(QuizUser, on_delete=models.CASCADE, related_name="quiz_attempts")
     status = models.PositiveSmallIntegerField(choices=STATUS_CHOICES, default=IN_PROGRESS)
     completed_at = models.DateTimeField(null=True, blank=True)
+    score = models.PositiveIntegerField(default=0)
 
     class Meta:
         ordering = ["-created_at"]
 
     def __str__(self) -> str:
         return f"{self.participant.email} - {self.quiz.title} ({self.status})"
+
+    @property
+    def percentage_score(self):
+        if self.score is None:
+            return 0.0
+        return round((self.score/self.quiz.max_score) * 100, 2)
 
 
 class Answer(models.Model):
