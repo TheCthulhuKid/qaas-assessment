@@ -1,5 +1,3 @@
-version: '3.5'
-
 services:
   django-backend:
     build:
@@ -7,6 +5,23 @@ services:
     ports:
       - "8000:8000"
     volumes:
-        - '.:/usr/src:rw'
+        - '.:/app:rw'
     command: bash run_command.sh
     env_file: .env
+    depends_on:
+      - postgres
+
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      - POSTGRES_HOST=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=qaasdb
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:

@@ -1,0 +1,19 @@
+[project]
+name = "QaaS"
+version = "0.1.0"
+description = "Programming task for Oper"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "django<5",
+    "djangorestframework>=3.16.0",
+    "psycopg[binary]>=3.2.6",
+]
+
+[dependency-groups]
+dev = [
+    "mypy>=1.15.0",
+    "pytest>=8.3.5",
+    "pytest-django>=4.11.1",
+    "ruff>=0.11.7",
+]

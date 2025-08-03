@@ -1,25 +1,31 @@
-FROM --platform=linux/amd64 python:3.10.13-slim
-# set work directory
-WORKDIR /usr/src
+## ------------------------------- Builder Stage ------------------------------ ##
+FROM python:3.13-bookworm AS builder
 
-# set environment varibles
-ENV PYTHONDONTWRITEBYTECODE 1
-ENV PYTHONUNBUFFERED 1
+RUN apt-get update && apt-get install --no-install-recommends -y \
+        build-essential libpq-dev && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# install dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    && pip install --upgrade pip \
-    && pip install pipenv
+# Download the latest installer, install it and then remove it
+ADD https://astral.sh/uv/install.sh /install.sh
+RUN chmod -R 655 /install.sh && /install.sh && rm /install.sh
 
-COPY ./Pipfile /usr/src/Pipfile
-COPY ./Pipfile.lock /usr/src/Pipfile.lock
+# Set up the UV environment path correctly
+ENV PATH="/root/.local/bin:${PATH}"
 
-# install Python dependencies
-RUN pipenv install --system --deploy --ignore-pipfile \
-    && apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false \
-    && rm -rf /var/lib/apt/lists/*
+WORKDIR /app
 
-# copy project
-COPY . /usr/src
+COPY ./pyproject.toml .
+
+RUN uv sync
+
+## ------------------------------- Production Stage ------------------------------ ##
+FROM python:3.13-slim-bookworm AS production
+
+WORKDIR /app
+
+COPY . .
+COPY --from=builder /app/.venv .venv
+
+ENV PATH="/app/.venv/bin:$PATH"
 
 RUN python manage.py collectstatic --noinput
