@@ -204,6 +204,10 @@ class Attempt(BaseModel):
             return 0.0
         return round((self.score/self.quiz.max_score) * 100, 2)
 
+    @property
+    def max_score(self):
+        return self.quiz.max_score
+
 
 class Answer(models.Model):
     """
