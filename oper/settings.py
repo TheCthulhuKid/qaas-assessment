@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
+    'nested_admin',
     'quiz',
 ]
 
@@ -80,15 +81,15 @@ WSGI_APPLICATION = 'oper.wsgi.application'
 # https://docs.djangoproject.com/en/4.0/ref/settings/#databases
 
 DATABASES = {
-        'default':
-            {
-                'ENGINE': 'django.db.backends.postgresql',
-                'NAME': 'qaasdb',
-                'USER': 'postgres',
-                'PASSWORD': 'postgres',
-                'HOST': 'postgres',
-                'PORT': '5432',
-    }
+    'default':
+        {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': 'qaasdb',
+            'USER': 'postgres',
+            'PASSWORD': 'postgres',
+            'HOST': 'postgres',
+            'PORT': '5432',
+        }
 }
 
 
@@ -135,3 +136,7 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+REST_FRAMEWORK = {
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.LimitOffsetPagination',
+    'PAGE_SIZE': 20
+}

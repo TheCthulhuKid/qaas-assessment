@@ -9,7 +9,13 @@ services:
     env_file:
       - .env
     depends_on:
+      - redis
       - postgres
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
 
   postgres:
     image: postgres:17-alpine

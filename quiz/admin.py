@@ -1,6 +1,7 @@
+import nested_admin
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from django.db.models import Avg, Count
+from django.db.models import Avg
 from django.template.defaultfilters import truncatechars
 from django.urls import reverse
 from django.utils.html import format_html
@@ -8,22 +9,27 @@ from django.utils.html import format_html
 from . import models
 
 
-class ChoiceInline(admin.TabularInline):
+class ChoiceInline(nested_admin.NestedTabularInline):
     model = models.Choice
     extra = 4
+    max_num = 4
     fields = ["text", "is_correct", "order"]
+    sortable_field_name = "order"
     ordering = ["order"]
 
 
-class QuestionInline(admin.StackedInline):
+class QuestionInline(nested_admin.NestedStackedInline):
     model = models.Question
     extra = 1
     fields = ["text", "question_type", "order", "points"]
     ordering = ["order"]
+    sortable_field_name = "order"
+    inlines = [ChoiceInline]
+    show_change_link = True
 
 
 @admin.register(models.Quiz)
-class QuizAdmin(admin.ModelAdmin):
+class QuizAdmin(nested_admin.NestedModelAdmin):
     list_display = [
         "title",
         "owner",
@@ -72,13 +78,6 @@ class QuizAdmin(admin.ModelAdmin):
         ),
     )
 
-    def get_queryset(self, request):
-        """Filter quizzes to show only user's own quizzes for non-superusers"""
-        qs = super().get_queryset(request)
-        if request.user.is_superuser:
-            return qs
-        return qs.filter(owner=request.user)
-
     def save_model(self, request, obj, form, change):
         """Automatically set the creator to the current user"""
         if not change:  # Only for new objects
@@ -103,7 +102,6 @@ class QuizAdmin(admin.ModelAdmin):
         return f"{avg:.1f}" if avg else "N/A"
     average_score.short_description = "Avg Score"
 
-    @admin.display()
     def action_buttons(self, obj):
         """Custom action buttons"""
         view_invitations = (
@@ -125,45 +123,6 @@ class QuizAdmin(admin.ModelAdmin):
     action_buttons.allow_tags = True
 
 
-@admin.register(models.Question)
-class QuestionAdmin(admin.ModelAdmin):
-    list_display = ["quiz", "text_preview", "question_type", "order", "points"]
-    list_filter = ["quiz", "question_type"]
-    search_fields = ["text", "quiz__title"]
-    inlines = [ChoiceInline]
-
-    def get_queryset(self, request):
-        """Filter questions to show only user's own quiz questions for non-superusers"""
-        qs = super().get_queryset(request)
-        if request.user.is_superuser:
-            return qs
-        return qs.filter(quiz__owner=request.user)
-
-    @admin.display()
-    def text_preview(self, obj: models.Question) -> str:
-        return truncatechars(obj.text, 50)
-    text_preview.short_description = "Question Text"
-
-
-@admin.register(models.Choice)
-class ChoiceAdmin(admin.ModelAdmin):
-    list_display = ["question", "text_preview", "is_correct", "order"]
-    list_filter = ["is_correct", "question__quiz"]
-    search_fields = ["text", "question__text"]
-
-    def get_queryset(self, request):
-        """Filter choices to show only user's own quiz choices for non-superusers"""
-        qs = super().get_queryset(request)
-        if request.user.is_superuser:
-            return qs
-        return qs.filter(question__quiz__owner=request.user)
-
-    @admin.display()
-    def text_preview(self, obj: models.Choice) -> str:
-        return truncatechars(obj.text, 50)
-    text_preview.short_description = "Choice Text"
-
-
 @admin.register(models.Invitation)
 class QuizInvitationAdmin(admin.ModelAdmin):
     list_display = [
@@ -177,13 +136,6 @@ class QuizInvitationAdmin(admin.ModelAdmin):
     list_filter = ["status", "created_at", "quiz"]
     search_fields = ["participant__username", "quiz__title", "invited_by__username"]
     readonly_fields = ["id", "created_at", "responded_at"]
-
-    def get_queryset(self, request):
-        """Filter invitations to show only user's own quiz invitations for non-superusers"""
-        qs = super().get_queryset(request)
-        if request.user.is_superuser:
-            return qs
-        return qs.filter(quiz__owner=request.user)
 
     def save_model(self, request, obj, form, change):
         """Automatically set the invited_by to the current user"""
@@ -224,13 +176,6 @@ class QuizAttemptAdmin(admin.ModelAdmin):
         ("System Information", {"fields": ("id",), "classes": ("collapse",)}),
     )
 
-    def get_queryset(self, request):
-        """Filter attempts to show only user's own quiz attempts for non-superusers"""
-        qs = super().get_queryset(request)
-        if request.user.is_superuser:
-            return qs
-        return qs.filter(quiz__owner=request.user)
-
     @admin.display()
     def score_display(self, obj: models.Attempt):
         if obj.score is not None and obj.max_score is not None:
@@ -239,7 +184,6 @@ class QuizAttemptAdmin(admin.ModelAdmin):
         return "Not scored"
     score_display.short_description = "Score"
 
-    @admin.display()
     def action_buttons(self, obj):
         """Custom action buttons"""
         view_answers = (
@@ -266,13 +210,6 @@ class QuizAnswerAdmin(admin.ModelAdmin):
     search_fields = ["attempt__participant__username", "question__text"]
     readonly_fields = ["answered_at", "is_correct"]
 
-    def get_queryset(self, request):
-        """Filter answers to show only user's own quiz answers for non-superusers"""
-        qs = super().get_queryset(request)
-        if request.user.is_superuser:
-            return qs
-        return qs.filter(attempt__quiz__owner=request.user)
-
     @admin.display()
     def is_correct(self, obj: models.Answer) -> bool:
         return obj.selected_choice.is_correct
@@ -291,8 +228,3 @@ class QuizAnswerAdmin(admin.ModelAdmin):
 
 
 admin.site.register(models.QuizUser, UserAdmin)
-
-# Customize admin site header and title
-admin.site.site_header = "QaaS - Quiz as a Service"
-admin.site.site_title = "QaaS Admin"
-admin.site.index_title = "Quiz Management Dashboard"

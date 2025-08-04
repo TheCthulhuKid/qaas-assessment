@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import MinValueValidator
 from django.db import models
-from django.db.models import Q, UniqueConstraint
+from django.db.models import Count, Q, Sum, UniqueConstraint
 from django.utils.translation import gettext_lazy as _
 
 
@@ -33,6 +33,8 @@ class Quiz(BaseModel):
     Representation of a basic quiz structure.
     TODO: Given this is a backend does it make sense to give each a slug?
     """
+    MAX_NUMBER_OF_QUESTIONS = 20
+
     DRAFT = 1
     ACTIVE = 2
     CLOSED = 3
@@ -41,6 +43,7 @@ class Quiz(BaseModel):
         (ACTIVE, _("Active")),
         (CLOSED, _("Closed")),
     ]
+
     owner = models.ForeignKey(QuizUser, on_delete=models.CASCADE, related_name="created_quizzes")
     title = models.CharField(max_length=150)
     description = models.TextField(null=True, blank=True)
@@ -54,7 +57,6 @@ class Quiz(BaseModel):
 
     def __str__(self) -> str:
         return self.title
-
 
     @property
     def is_active(self) -> bool:
@@ -74,14 +76,28 @@ class Quiz(BaseModel):
         return True
 
     @property
-    def max_score(self):
-        return sum(self.questions.points)
+    def max_score(self) -> int:
+        """
+        Retrieve the maximum score possible.
+        """
+        return self.questions.all().aggregate(Sum("points"))["points__sum"]
+
+    @property
+    def total_questions(self) -> int:
+
+        return self.questions.count()
+
+    @property
+    def participant_stats(self):
+        return self.attempts.values("status").annotate(count=Count("pk"))
 
 
 class Question(models.Model):
     """
     Model representing a question in a Quiz.
     """
+    MAX_CHOICES_AVAILABLE = 4
+
     # Different types of quiz questions may become available (free text, image, etc.)
     MULTI = 1
 
@@ -106,6 +122,10 @@ class Question(models.Model):
 
     def __str__(self) -> str:
         return f"{self.quiz.title} - Question {self.order + 1}"
+
+    @property
+    def correct_choice(self):
+        return self.choices.filter(is_correct=True).first()
 
 
 class Choice(models.Model):
@@ -196,17 +216,21 @@ class Attempt(BaseModel):
         ordering = ["-created_at"]
 
     def __str__(self) -> str:
-        return f"{self.participant.email} - {self.quiz.title} ({self.status})"
+        return f"{self.participant.username} - {self.quiz.title} ({self.status})"
 
     @property
     def percentage_score(self):
-        if self.score is None:
+        if self.score is None or self.quiz.max_score is None:
             return 0.0
         return round((self.score/self.quiz.max_score) * 100, 2)
 
     @property
     def max_score(self):
         return self.quiz.max_score
+
+    @property
+    def answered_questions_count(self):
+        return self.answers.count()
 
 
 class Answer(models.Model):
