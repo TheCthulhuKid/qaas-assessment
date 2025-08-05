@@ -35,18 +35,23 @@ ALLOWED_HOSTS = []
 AUTH_USER_MODEL = "quiz.QuizUser"
 
 INSTALLED_APPS = [
+    'daphne',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'corsheaders',
     'rest_framework',
+    'rest_framework.authtoken',
     'nested_admin',
+    'channels',
     'quiz',
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -55,6 +60,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
 
 ROOT_URLCONF = 'oper.urls'
 
@@ -74,6 +80,7 @@ TEMPLATES = [
     },
 ]
 
+ASGI_APPLICATION = 'oper.asgi.application'
 WSGI_APPLICATION = 'oper.wsgi.application'
 
 
@@ -84,11 +91,11 @@ DATABASES = {
     'default':
         {
             'ENGINE': 'django.db.backends.postgresql',
-            'NAME': 'qaasdb',
-            'USER': 'postgres',
-            'PASSWORD': 'postgres',
-            'HOST': 'postgres',
-            'PORT': '5432',
+            'NAME': os.getenv('POSTGRES_DB', 'qaasdb'),
+            'USER': os.getenv('POSTGRES_USER', 'postgres'),
+            'PASSWORD': os.getenv('POSTGRES_PASSWORD', 'postgres'),
+            'HOST': os.getenv('POSTGRES_HOST', 'localhost'),
+            'PORT': os.getenv('POSTGRES_PORT', '5432'),
         }
 }
 
@@ -137,6 +144,24 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework.authentication.TokenAuthentication",
+        "rest_framework.authentication.SessionAuthentication"
+    ],
+    "DEFAULT_PERMISSION_CLASSES": [
+        "rest_framework.permissions.IsAuthenticated",
+    ],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.LimitOffsetPagination',
     'PAGE_SIZE': 20
+}
+
+REDIS_URL = os.getenv('REDIS_URL', 'redis://redis:6379')
+
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            'hosts': [REDIS_URL],
+        },
+    },
 }
