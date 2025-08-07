@@ -126,11 +126,11 @@ class AttemptSerializer(serializers.ModelSerializer):
     Serialize an existing attempt
     """
     quiz = serializers.PrimaryKeyRelatedField(read_only=True)
-    participant = serializers.PrimaryKeyRelatedField(read_only=True)
+    participant = UserSerializer(read_only=True)
 
     class Meta:
         model = models.Attempt
-        fields = ["id", "quiz", "participant"]
+        fields = ["id", "quiz", "participant", "score"]
 
 
 class AnswerSerializer(serializers.ModelSerializer):
@@ -148,6 +148,12 @@ class AnswerSerializer(serializers.ModelSerializer):
         if attrs["selected_choice"].question != attrs["question"]:
             raise serializers.ValidationError("This is not a valid answer")
         return attrs
+
+    def create(self, validated_data):
+        answer = super().create(validated_data)
+        if answer.selected_choice.is_correct:
+            answer.attempt.score += answer.question.points
+            answer.attempt.save()
 
 
 class AttemptSubmissionSerializer(serializers.ModelSerializer):

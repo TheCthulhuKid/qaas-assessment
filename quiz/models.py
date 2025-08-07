@@ -220,7 +220,7 @@ class Attempt(BaseModel):
 
     @property
     def percentage_score(self):
-        if self.score is None or self.quiz.max_score is None:
+        if not self.score or not self.quiz.max_score:
             return 0.0
         return round((self.score/self.quiz.max_score) * 100, 2)
 
