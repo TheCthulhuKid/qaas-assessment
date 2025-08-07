@@ -170,12 +170,16 @@ class AttemptSubmissionSerializer(serializers.ModelSerializer):
         read_only_fields = ["id", "quiz", "participant", "status"]
         depth = 2
 
-    def update(self, instance, validated_data):
+    def update(self, instance: models.Attempt, validated_data):
         answers = validated_data.pop("answers")
         for answer in answers:
             if not answer.get("id"):
                 models.Answer.objects.create(**answer)
-        return instance
+        if len(answers) == instance.quiz.total_questions:
+            validated_data["completed_at"] = timezone.now()
+            validated_data["status"] = models.Attempt.COMPLETED
+
+        return super().update(instance, validated_data)
 
 
 class InvitationCreationSerializer(serializers.ModelSerializer):
