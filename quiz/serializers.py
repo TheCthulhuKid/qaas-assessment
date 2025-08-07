@@ -182,7 +182,8 @@ class AttemptSubmissionSerializer(serializers.ModelSerializer):
         answers = validated_data.pop("answers")
         for answer in answers:
             if not answer.get("id"):
-                models.Answer.objects.create(**answer)
+                ans = AnswerSerializer(**answer)
+                ans.save()
         if len(answers) == instance.quiz.total_questions:
             validated_data["completed_at"] = timezone.now()
             validated_data["status"] = models.Attempt.COMPLETED
