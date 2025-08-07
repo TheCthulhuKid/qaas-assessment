@@ -171,6 +171,14 @@ class AttemptSubmissionSerializer(serializers.ModelSerializer):
         depth = 2
 
     def update(self, instance: models.Attempt, validated_data):
+        if instance.status == models.Attempt.COMPLETED:
+            raise serializers.ValidationError("This quiz has already been completed!")
+        if instance.quiz.end_time and instance.quiz.end_time <= timezone.now():
+            validated_data["status"] = models.Attempt.EXPIRED
+            instance = super().update(instance, validated_data)
+        if instance.status == models.Attempt.EXPIRED:
+            raise serializers.ValidationError("This quiz is no longer accepting submissions!")
+
         answers = validated_data.pop("answers")
         for answer in answers:
             if not answer.get("id"):
