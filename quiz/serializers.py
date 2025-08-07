@@ -125,7 +125,7 @@ class AttemptSerializer(serializers.ModelSerializer):
     """
     Serialize an existing attempt
     """
-    quiz = serializers.PrimaryKeyRelatedField(read_only=True)
+    quiz = QuizSerializer(read_only=True)
     participant = UserSerializer(read_only=True)
 
     class Meta:
@@ -162,6 +162,7 @@ class AttemptSubmissionSerializer(serializers.ModelSerializer):
     """
     quiz = QuizDetailSerializer(read_only=True)
     answers = AnswerSerializer(many=True)
+    participant = UserSerializer(read_only=True)
 
     class Meta:
         model = models.Attempt
